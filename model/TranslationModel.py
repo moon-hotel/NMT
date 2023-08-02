@@ -3,6 +3,10 @@ import torch.nn as nn
 
 
 class TranslationModel(nn.Module):
+    """
+    翻译模型
+    """
+
     def __init__(self, src_emb_size, tgt_emb_size, hidden_size, num_layers, src_v_size, tgt_v_size,
                  cell_type='LSTM', bidirectional=False, batch_first=True):
         super().__init__()
@@ -22,7 +26,9 @@ class TranslationModel(nn.Module):
         return logits
 
     def encoder(self, src_input):
-        pass
+        output, final_state = self.seq2seq.encoder(src_input)
+        return output, final_state
 
     def decoder(self, tgt_input, encoder_state):
-        pass
+        output, _ = self.seq2seq.decoder(tgt_input, encoder_state)
+        return output
