@@ -128,7 +128,8 @@ class Vocab(object):
                 break
             self.stoi[word[0]] = i + len(self.specials)  # len(self.specials)表示已有的特殊字符
             self.itos.append(word[0])
-        logging.info(f" ## 词表构建完毕，前100个词为: {list(self.stoi.items())[:100]}")
+        logging.info(f" ## 词表构建完毕，总长度为{len(self.itos)}, "
+                     f"前100个词为: {list(self.stoi.items())[:100]}")
         return self
 
     def build_vocab(self):
@@ -167,25 +168,38 @@ class LoadEnglishGermanDataset():
 
     # 指定数据集构建完毕后的缓存路径
 
-    def __init__(self, batch_size=2, min_freq=2, top_k=None, src_inverse=True, batch_first=True):
+    def __init__(self, batch_size=2, min_freq=2, src_top_k=None,
+                 tgt_top_k=None, src_inverse=True, batch_first=True):
+        """
+
+        :param batch_size:
+        :param min_freq:
+        :param src_top_k: 对于源输入来说，如果src_top_k=None，则以min_freq进行过滤
+        :param tgt_top_k: 对于目标输入来说，同上。 但是两者相互独立，例如src_top_k=None,
+                          tgt_top_k= 500, min_freq=10, 则表示源输入以min_freq进行过滤
+                          目标输入以tgt_top_k进行过滤
+        :param src_inverse:  是否将源输入反转
+        :param batch_first:
+        """
         self.batch_size = batch_size
         self.min_freq = min_freq
-        self.top_k = top_k
+        self.tgt_top_k = tgt_top_k
+        self.src_top_k = src_top_k
         self.src_inverse = src_inverse
         self.batch_first = batch_first
         self.tokenizer = my_tokenizer()
         logging.info(f" ## 构建源输入词表......")
         self.src_vocab = Vocab(self.tokenizer['src'], file_path=self.DATA_FILE_PATH['train']['src'],
-                               min_freq=min_freq, top_k=top_k, specials=['<PAD>', '<UNK>'])
+                               min_freq=min_freq, top_k=src_top_k, specials=['<PAD>', '<UNK>'])
         logging.info(f" ## 构建目标输入词表......")
         self.tgt_vocab = Vocab(self.tokenizer['tgt'], file_path=self.DATA_FILE_PATH['train']['tgt'],
-                               min_freq=min_freq, top_k=top_k,
+                               min_freq=min_freq, top_k=tgt_top_k,
                                specials=['<PAD>', '<UNK>', '<BOS>', '<EOS>'])
         self.TGT_PAD_IDX = self.tgt_vocab['<PAD>']
         self.TGT_BOS_IDX = self.tgt_vocab['<BOS>']
         self.TGT_EOS_IDX = self.tgt_vocab['<EOS>']
 
-    @process_cache(unique_key=['min_freq', 'top_k', 'batch_first'])
+    @process_cache(unique_key=['min_freq', 'src_top_k', 'tgt_top_k', 'batch_first'])
     def data_process(self, file_path=None):
         """
         将训练集或验证集或测试集中的平行语料文本转换成token
