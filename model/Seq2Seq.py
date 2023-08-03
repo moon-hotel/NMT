@@ -9,7 +9,6 @@ class Encoder(nn.Module):
     def __init__(self, embedding_size, hidden_size, num_layers, vocab_size,
                  cell_type='LSTM', bidirectional=False, batch_first=True):
         """
-
         :param embedding_size:
         :param hidden_size:
         :param num_layers:  RNN的层数
@@ -27,9 +26,7 @@ class Encoder(nn.Module):
         self.bidirectional = bidirectional
         self.batch_first = batch_first
 
-        if cell_type == 'RNN':
-            rnn_cell = nn.RNN
-        elif cell_type == 'LSTM':
+        if cell_type == 'LSTM':
             rnn_cell = nn.LSTM
         elif cell_type == 'GRU':
             rnn_cell = nn.GRU
@@ -101,13 +98,14 @@ class Decoder(nn.Module):
 
 
 class Seq2Seq(nn.Module):
-    def __init__(self, src_emb_size, tgt_emb_size, hidden_size, num_layers, src_v_size, tgt_v_size,
-                 cell_type='LSTM', bidirectional=False, batch_first=True):
+    def __init__(self, config=None):
         super(Seq2Seq, self).__init__()
-        self.encoder = Encoder(src_emb_size, hidden_size, num_layers, src_v_size,
-                               cell_type, bidirectional, batch_first)
-        self.decoder = Decoder(tgt_emb_size, hidden_size, num_layers, tgt_v_size,
-                               cell_type, bidirectional, batch_first)
+        self.encoder = Encoder(config.src_emb_size, config.hidden_size,
+                               config.num_layers, config.src_v_size, config.cell_type,
+                               config.bidirectional, config.batch_first)
+        self.decoder = Decoder(config.tgt_emb_size, config.hidden_size,
+                               config.num_layers, config.tgt_v_size,
+                               config.cell_type, config.bidirectional, config.batch_first)
 
     def forward(self, src_input, tgt_input):
         """
