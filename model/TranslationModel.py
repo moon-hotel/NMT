@@ -7,12 +7,10 @@ class TranslationModel(nn.Module):
     翻译模型
     """
 
-    def __init__(self, src_emb_size, tgt_emb_size, hidden_size, num_layers, src_v_size, tgt_v_size,
-                 cell_type='LSTM', bidirectional=False, batch_first=True):
+    def __init__(self, config = None):
         super().__init__()
-        self.seq2seq = Seq2Seq(src_emb_size, tgt_emb_size, hidden_size, num_layers,
-                               src_v_size, tgt_v_size, cell_type, bidirectional, batch_first)
-        self.classifier = nn.Linear(hidden_size, tgt_v_size)
+        self.seq2seq = Seq2Seq(config)
+        self.classifier = nn.Linear(config.hidden_size, config.tgt_v_size)
 
     def forward(self, src_input, tgt_input):
         """
