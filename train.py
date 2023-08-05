@@ -21,6 +21,7 @@ def train(config=None):
     logging.info("############初始化模型############")
     config.src_v_size = len(data_loader.src_vocab)
     config.tgt_v_size = len(data_loader.tgt_vocab)
+    config.show_paras()
     model = TranslationModel(config)
     if os.path.exists(config.model_save_path):
         loaded_paras = torch.load(config.model_save_path)
@@ -48,10 +49,10 @@ def train(config=None):
             if i % 50 == 0:
                 bleu = compute_bleu(logits.argmax(dim=-1), tgt_out)
                 logging.info(f"Epochs[{epoch + 1}/{config.epochs}]--batch[{i}/{len(train_iter)}]"
-                             f"--ppl: {round(torch.exp(loss).item(), 4)}--loss: {round(loss.item(), 4)}")
-                logging.info(f"bleu: {round(bleu, 4)}")
+                             f"--ppl: {round(torch.exp(loss).item(), 4)}--loss: {round(loss.item(), 4)}"
+                             f"bleu: {round(bleu, 4)}")
         bleu = evaluate(config, valid_iter, model, data_loader)
-        if bleu > max_bleu:  # 因为
+        if bleu > max_bleu:
             logging.info(f"bleu on valid set: {bleu}")
             max_bleu = bleu
             state_dict = deepcopy(model.state_dict())
@@ -93,9 +94,6 @@ def compute_bleu(y_pred, y_true):
     y_pred = [[str(item) for item in x] for x in y_pred]
     y_true = [[[str(item) for item in x]] for x in y_true]
     return bleu_score(y_pred, y_true, max_n=4)
-
-
-
 
 
 if __name__ == '__main__':
