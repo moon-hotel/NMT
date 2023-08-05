@@ -157,10 +157,10 @@ class LoadEnglishGermanDataset():
     构建德语（src）-英语（tgt）平行语料
     """
     DATA_DIR = os.path.join(DATA_HOME, 'GermanEnglish')
-    DATA_FILE_PATH = {'train': {'src': os.path.join(DATA_DIR, 'train_.de'),
-                                'tgt': os.path.join(DATA_DIR, 'train_.en')},
-                      'dev': {'src': os.path.join(DATA_DIR, 'val_.de'),
-                              'tgt': os.path.join(DATA_DIR, 'val_.en')}}
+    DATA_FILE_PATH = {'train': {'src': os.path.join(DATA_DIR, 'train.de'),
+                                'tgt': os.path.join(DATA_DIR, 'train.en')},
+                      'dev': {'src': os.path.join(DATA_DIR, 'val.de'),
+                              'tgt': os.path.join(DATA_DIR, 'val.en')}}
     # 指定数据集对应的路径
     CACHE_FILE_PATH = {'train': os.path.join(DATA_DIR, 'train'),
                        'dev': os.path.join(DATA_DIR, 'dev'),
