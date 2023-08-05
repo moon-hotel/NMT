@@ -5,7 +5,7 @@ def greedy_decode(model, src_in, start_symbol=2, end_symbol=3, device=None):
     """
     贪婪搜索
     :param model:
-    :param src_input: 原始输入，形状为 [1,src_len]
+    :param src_input: 原始输入，形状为 [1,src_len], 已经根据字典转换为了token序列
     :param start_symbol: 开始符 <BOS> 对应的 索引ID
     :param end_symbol:   结束符 <EOS> 对应的 索引ID
     :param device:
