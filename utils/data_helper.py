@@ -142,6 +142,12 @@ class Vocab(object):
         del vocab
 
     def __getitem__(self, token):
+        """
+        通过以vocab['word']的方式来获取词'word'对应的索引，如果不存在于词表中则返回'<UNK>'对应的索引
+        其中 vocab = Vocab(),
+        :param token:
+        :return:
+        """
         return self.stoi.get(token, self.stoi.get(self.specials[1]))
 
     def __len__(self):
@@ -160,7 +166,9 @@ class LoadEnglishGermanDataset():
     DATA_FILE_PATH = {'train': {'src': os.path.join(DATA_DIR, 'train.de'),
                                 'tgt': os.path.join(DATA_DIR, 'train.en')},
                       'dev': {'src': os.path.join(DATA_DIR, 'val.de'),
-                              'tgt': os.path.join(DATA_DIR, 'val.en')}}
+                              'tgt': os.path.join(DATA_DIR, 'val.en')},
+                      'test': {'src': os.path.join(DATA_DIR, 'test.de'),
+                               'tgt': os.path.join(DATA_DIR, 'test.en')}}
     # 指定数据集对应的路径
     CACHE_FILE_PATH = {'train': os.path.join(DATA_DIR, 'train'),
                        'dev': os.path.join(DATA_DIR, 'dev'),
