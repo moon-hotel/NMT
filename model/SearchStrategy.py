@@ -1,3 +1,5 @@
+import logging
+
 import torch
 
 
@@ -13,7 +15,7 @@ def greedy_decode(model, src_in, start_symbol=2, end_symbol=3, device=None):
     """
     _, thought_vec = model.encoder(src_in)
     max_len = src_in.shape[1] * 2  # 最大长度取输入的两倍
-    tgt_in = torch.LongTensor([[start_symbol]]).to(device)
+    tgt_in = torch.LongTensor([[start_symbol]]).to(device)  # [1,1]
     for i in range(max_len):
         output = model.decoder(tgt_in, thought_vec)  # [1,current_tgt_len, hidden_size]
         logits = model.classifier(output)  # [1,current_tgt_len, vocab_size]
@@ -21,5 +23,5 @@ def greedy_decode(model, src_in, start_symbol=2, end_symbol=3, device=None):
         pred = all_pred_logits.argmax()  # 预测当前时刻的结果
         if pred.item() == end_symbol:
             break
-        tgt_in = torch.cat([tgt_in, torch.LongTensor([[pred]])], dim=1)  # 拼接
-    return tgt_in[:, 1:].tolist()[0]  # 去掉第1个开始符，形状为 [1,tgt_len]
+        tgt_in = torch.cat([tgt_in, torch.LongTensor([[pred]]).to(device)], dim=1)  # 拼接
+    return tgt_in[:, 1:].detach().cpu().tolist()[0]  # 去掉第1个开始符，取第[0]个形状为 [tgt_len]
