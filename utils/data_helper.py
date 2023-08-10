@@ -16,8 +16,12 @@ def my_tokenizer():
     """
     分词器
     本示例中使用到的tokenizer需要安装spacy包和下面这两个包，data目录下有提供
-    pip install de_core_news_sm-3.0.0.tar.gz
-    pip install en_core_web_sm-3.0.0.tar.gz
+    pip install de_core_news_sm-3.6.0.tar.gz
+    pip install en_core_web_sm-3.6.0.tar.gz
+
+    参考下载地址
+    https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.6.0/de_core_news_sm-3.6.0-py3-none-any.whl
+    https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.6.0/en_core_web_sm-3.6.0-py3-none-any.whl
     :return:
     e.g.
     tokenizer['src']("Zwei junge weiße Männer sind im, Freien in der Nähe vieler Büsche.)
@@ -255,9 +259,9 @@ class LoadEnglishGermanDataset():
         train_data = self.data_process(file_path=self.CACHE_FILE_PATH['train'])
         val_data = self.data_process(file_path=self.CACHE_FILE_PATH['dev'])
         train_iter = DataLoader(train_data, batch_size=self.batch_size,
-                                shuffle=False, collate_fn=self.generate_batch)
-        valid_iter = DataLoader(val_data, batch_size=self.batch_size,
                                 shuffle=True, collate_fn=self.generate_batch)
+        valid_iter = DataLoader(val_data, batch_size=self.batch_size,
+                                shuffle=False, collate_fn=self.generate_batch)
         return train_iter, valid_iter
 
     def generate_batch(self, data_batch):
