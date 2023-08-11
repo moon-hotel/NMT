@@ -15,7 +15,6 @@ class ModelConfig():
         self.src_v_size = 50
         self.tgt_v_size = 60
         self.cell_type = 'LSTM'
-        self.bidirectional = False
         self.batch_first = True
 
 

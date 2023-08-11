@@ -15,10 +15,9 @@ def test_Encoder():
     num_layers = 2
     vocab_size = 100
     cell_type = 'LSTM'
-    bidirectional = False
     batch_first = True
     encoder = Encoder(embedding_size, hidden_size, num_layers, vocab_size,
-                      cell_type, bidirectional, batch_first)
+                      cell_type, batch_first)
     output, final_state = encoder(src_input)
     print(output.shape)  # [batch_size, src_len, embedding_size]
     print(final_state[0].shape)
@@ -34,14 +33,13 @@ def test_Decoder():
     num_layers = 2
     vocab_size = 100
     cell_type = 'LSTM'
-    bidirectional = False
     batch_first = True
     encoder = Encoder(embedding_size, hidden_size, num_layers, vocab_size,
-                      cell_type, bidirectional, batch_first)
+                      cell_type, batch_first)
     output, final_state = encoder(src_input)
 
     decoder = Decoder(embedding_size, hidden_size, num_layers, vocab_size,
-                      cell_type, bidirectional, batch_first)
+                      cell_type, batch_first)
     output, final_state = decoder(tgt_input, final_state)
     print(output.shape)
 
