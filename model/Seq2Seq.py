@@ -7,14 +7,13 @@ class Encoder(nn.Module):
     """
 
     def __init__(self, embedding_size, hidden_size, num_layers, vocab_size,
-                 cell_type='LSTM', bidirectional=False, batch_first=True):
+                 cell_type='LSTM', batch_first=True, dropout=0.):
         """
         :param embedding_size:
         :param hidden_size:
         :param num_layers:  RNN的层数
         :param vocab_size:
         :param cell_type:
-        :param bidirectional:
         :param batch_first:
         """
         super(Encoder, self).__init__()
@@ -23,8 +22,8 @@ class Encoder(nn.Module):
         self.num_layers = num_layers
         self.vocab_size = vocab_size
         self.cell_type = cell_type
-        self.bidirectional = bidirectional
         self.batch_first = batch_first
+        self.dropout = dropout
 
         if cell_type == 'LSTM':
             rnn_cell = nn.LSTM
@@ -35,7 +34,7 @@ class Encoder(nn.Module):
 
         self.token_embedding = nn.Embedding(self.vocab_size, self.embedding_size)
         self.rnn = rnn_cell(self.embedding_size, self.hidden_size, num_layers=self.num_layers,
-                            batch_first=self.batch_first, bidirectional=self.bidirectional)
+                            batch_first=self.batch_first, dropout=self.dropout)
 
     def forward(self, src_input=None):
         """
@@ -54,7 +53,7 @@ class Decoder(nn.Module):
     """
 
     def __init__(self, embedding_size, hidden_size, num_layers, vocab_size,
-                 cell_type='LSTM', bidirectional=False, batch_first=True):
+                 cell_type='LSTM', batch_first=True, dropout=0.):
         """
 
         :param embedding_size:
@@ -62,7 +61,6 @@ class Decoder(nn.Module):
         :param num_layers: RNN层数
         :param vocab_size:
         :param cell_type:
-        :param bidirectional:
         :param batch_first:
         """
         super(Decoder, self).__init__()
@@ -71,8 +69,8 @@ class Decoder(nn.Module):
         self.num_layers = num_layers
         self.vocab_size = vocab_size
         self.cell_type = cell_type
-        self.bidirectional = bidirectional
         self.batch_first = batch_first
+        self.dropout = dropout
 
         if cell_type == 'LSTM':
             rnn_cell = nn.LSTM
@@ -83,7 +81,7 @@ class Decoder(nn.Module):
 
         self.token_embedding = nn.Embedding(self.vocab_size, self.embedding_size)
         self.rnn = rnn_cell(self.embedding_size, self.hidden_size, num_layers=self.num_layers,
-                            batch_first=self.batch_first, bidirectional=self.bidirectional)
+                            batch_first=self.batch_first, dropout=self.dropout)
 
     def forward(self, tgt_input=None, encoder_state=None):
         """
@@ -100,12 +98,12 @@ class Decoder(nn.Module):
 class Seq2Seq(nn.Module):
     def __init__(self, config=None):
         super(Seq2Seq, self).__init__()
-        self.encoder = Encoder(config.src_emb_size, config.hidden_size,
-                               config.num_layers, config.src_v_size, config.cell_type,
-                               config.bidirectional, config.batch_first)
-        self.decoder = Decoder(config.tgt_emb_size, config.hidden_size,
-                               config.num_layers, config.tgt_v_size,
-                               config.cell_type, config.bidirectional, config.batch_first)
+        self.encoder = Encoder(config.src_emb_size, config.hidden_size, config.num_layers,
+                               config.src_v_size, config.cell_type, config.batch_first,
+                               config.dropout)
+        self.decoder = Decoder(config.tgt_emb_size, config.hidden_size, config.num_layers,
+                               config.tgt_v_size, config.cell_type, config.batch_first,
+                               config.dropout)
 
     def forward(self, src_input, tgt_input):
         """
