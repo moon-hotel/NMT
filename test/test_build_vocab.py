@@ -7,7 +7,6 @@ from utils.data_helper import Vocab
 from utils.data_helper import my_tokenizer
 from utils import DATA_HOME
 from utils import logger_init
-from collections import Counter
 import logging
 
 if __name__ == '__main__':
