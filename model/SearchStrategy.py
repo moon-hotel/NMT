@@ -22,8 +22,8 @@ def greedy_decode(model, src_in, start_symbol=2, end_symbol=3, device=None):
         # decoder_out shaep: [1,1, hidden_size]
         logits = model.classifier(decoder_out)  # [1,1, tgt_vocab_size]
         pred = logits.argmax()  # 预测当前时刻的结果, 0-d
-        results.append(pred.detach().cpu().item())
         if pred.item() == end_symbol:
             break
+        results.append(pred.detach().cpu().item())
         tgt_in = torch.LongTensor([[pred]]).to(device)
     return results  # [tgt_len]
