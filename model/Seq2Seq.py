@@ -1,4 +1,5 @@
 import torch.nn as nn
+import torch
 
 
 class Encoder(nn.Module):
@@ -47,7 +48,18 @@ class Encoder(nn.Module):
         return output, final_state  # output shape: [batch_size, src_len, hidden_size]
 
 
-class StandardDecoder(nn.Module):
+class AttentionDecoder(nn.Module):
+    """带有注意力机制解码器的基本接口"""
+
+    def __init__(self, **kwargs):
+        super(AttentionDecoder, self).__init__(**kwargs)
+
+    @property
+    def attention_weights(self):
+        raise NotImplementedError
+
+
+class StandardDecoder(AttentionDecoder):
     """
     标准解码器
     """
@@ -72,20 +84,70 @@ class StandardDecoder(nn.Module):
         self.rnn = rnn_cell(self.embedding_size, self.hidden_size, num_layers=self.num_layers,
                             batch_first=self.batch_first, dropout=self.dropout)
 
-    def forward(self, embedded_tgt_input=None, decoder_state=None, encoder_output=None):
+    def forward(self, tgt_input=None, decoder_state=None, encoder_output=None):
         """
 
-        :param tgt_input: [batch_size, tgt_len] 这种情况 batch_first 要为True
+        :param tgt_input: [batch_size, tgt_len, embedding_size] 这种情况 batch_first 要为True
         :param decoder_state: encoder的state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
                               解码第一个时刻的时候，decoder_state为编码器最后一个时刻的encoder_state
         :return: output, (hn, cn)
         """
-        output, final_state = self.rnn(embedded_tgt_input, decoder_state)
+        output, final_state = self.rnn(tgt_input, decoder_state)
         return output, final_state
 
 
-class AttentionDecoder(nn.Module):
-    pass
+class LuongAttentionDecoder(AttentionDecoder):
+    """
+    Luong's multiplicative attention
+    """
+
+    def __init__(self, embedding_size, hidden_size, num_layers,
+                 rnn_cell=None, batch_first=True, dropout=0.):
+        super(LuongAttentionDecoder, self).__init__()
+        self.embedding_size = embedding_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.batch_first = batch_first
+        self.dropout = dropout
+        self.linear = nn.Linear(hidden_size, hidden_size)
+        self.rnn = rnn_cell(self.embedding_size + self.hidden_size,
+                            self.hidden_size, num_layers=self.num_layers,
+                            batch_first=self.batch_first, dropout=self.dropout)
+
+    def forward(self, tgt_input=None, decoder_state=None, encoder_output=None):
+        """
+
+        :param tgt_input: [batch_size, tgt_len, embedding_size] 这种情况 batch_first 要为True
+        :param decoder_state (hn,cn): 在解码第1个时刻时，decoder_state为encoder最后一个时刻的状态
+                              后续则为decoder上一个时刻的状态
+                hn: [num_layer, batch_size, hidden_size]
+                cn: [num_layer, batch_size, hidden_size]
+        :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, time_step, hidden_size]
+        :return:
+        """
+        tgt_input = tgt_input.permute(1, 0, 2)  # [tgt_len, batch_size, embedding_size]
+        outputs, self._attention_weights = [], []
+        for tgt_in in tgt_input:  # 开始遍历每个时刻
+            pass
+
+    def attention(self, query, key, value, padding_idx=0):
+        """
+
+        :param query:  hidden_state中的hn的最后一层: [batch_size, hidden_size]
+        :param key:    encoder_output [batch_size, time_step, hidden_size]
+        :param value:  encoder_output [batch_size, time_step, hidden_size]
+        :param padding_idx:  填充值
+        :return:
+        """
+        scores = torch.bmm(self.linear(query).unsqueeze(1), key.transpose(1, 2))  # [batch_size, tgt_len, time_step]
+
+        # [batch_size, hidden_size] @ [hidden_size, hidden_size] = [batch_size, hidden_size]
+        # [batch_size, 1, hidden_size] @ [batch_size, hidden_size, time_step]= [batch_size, 1, time_step]
+        pass
+
+    @property
+    def attention_weights(self):
+        return self._attention_weights
 
 
 class DecoderWrapper(nn.Module):
