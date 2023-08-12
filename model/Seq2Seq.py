@@ -49,7 +49,7 @@ class Encoder(nn.Module):
 
 class StandardDecoder(nn.Module):
     """
-    解码器
+    标准解码器
     """
 
     def __init__(self, embedding_size, hidden_size, num_layers,
@@ -72,15 +72,20 @@ class StandardDecoder(nn.Module):
         self.rnn = rnn_cell(self.embedding_size, self.hidden_size, num_layers=self.num_layers,
                             batch_first=self.batch_first, dropout=self.dropout)
 
-    def forward(self, embedded_tgt_input=None, encoder_state=None):
+    def forward(self, embedded_tgt_input=None, decoder_state=None, encoder_output=None):
         """
 
         :param tgt_input: [batch_size, tgt_len] 这种情况 batch_first 要为True
-        :param encoder_state: encoder的state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
+        :param decoder_state: encoder的state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
+                              解码第一个时刻的时候，decoder_state为编码器最后一个时刻的encoder_state
         :return: output, (hn, cn)
         """
-        output, final_state = self.rnn(embedded_tgt_input, encoder_state)
+        output, final_state = self.rnn(embedded_tgt_input, decoder_state)
         return output, final_state
+
+
+class AttentionDecoder(nn.Module):
+    pass
 
 
 class DecoderWrapper(nn.Module):
@@ -117,15 +122,16 @@ class DecoderWrapper(nn.Module):
             self.decoder_wrapper = StandardDecoder(embedding_size, hidden_size, num_layers,
                                                    rnn_cell, batch_first=batch_first, dropout=dropout)
 
-    def forward(self, tgt_input=None, encoder_state=None):
+    def forward(self, tgt_input=None, decoder_state=None, encoder_output=None):
         """
 
         :param tgt_input: [batch_size, tgt_len] 这种情况 batch_first 要为True
-        :param encoder_state: encoder的state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
+        :param decoder_state: state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
+                               解码第一个时刻的时候，decoder_state为编码器最后一个时刻的state
         :return: output, (hn, cn)
         """
         tgt_input = self.token_embedding(tgt_input)  # [batch_size, tgt_input, embedding_size]
-        output, final_state = self.decoder_wrapper(tgt_input, encoder_state)
+        output, final_state = self.decoder_wrapper(tgt_input, decoder_state, encoder_output)
         return output, final_state
 
 
@@ -147,5 +153,5 @@ class Seq2Seq(nn.Module):
         :return: [batch_size, tgt_len, hidden_size]
         """
         encoder_output, encoder_state = self.encoder(src_input)
-        decoder_output, _ = self.decoder(tgt_input, encoder_state)
+        decoder_output, decoder_state = self.decoder(tgt_input, encoder_state, encoder_output)
         return decoder_output

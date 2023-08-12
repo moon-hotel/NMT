@@ -41,7 +41,7 @@ def test_Decoder():
     decoder = DecoderWrapper(embedding_size, hidden_size, num_layers, vocab_size,
                              cell_type, decoder_type='standard', batch_first=True)
     output, final_state = decoder(tgt_input, final_state)
-    print("decoder output.shape: ",output.shape)
+    print("decoder output.shape: ", output.shape)
 
 
 if __name__ == '__main__':

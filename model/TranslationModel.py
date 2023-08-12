@@ -7,7 +7,7 @@ class TranslationModel(nn.Module):
     翻译模型
     """
 
-    def __init__(self, config = None):
+    def __init__(self, config=None):
         super().__init__()
         self.seq2seq = Seq2Seq(config)
         self.classifier = nn.Linear(config.hidden_size, config.tgt_v_size)
@@ -27,6 +27,13 @@ class TranslationModel(nn.Module):
         output, final_state = self.seq2seq.encoder(src_input)
         return output, final_state
 
-    def decoder(self, tgt_input, encoder_state):
-        output, _ = self.seq2seq.decoder(tgt_input, encoder_state)
-        return output
+    def decoder(self, tgt_input, decoder_state, encoder_output):
+        """
+
+        :param tgt_input:
+        :param decoder_state:  解码第一个时刻的时候，decoder_state为编码器最后一个时刻的state
+        :param encoder_output: 用于计算注意力权重
+        :return:
+        """
+        output, final_state = self.seq2seq.decoder(tgt_input, decoder_state, encoder_output)
+        return output, final_state

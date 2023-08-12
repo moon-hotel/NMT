@@ -13,15 +13,17 @@ def greedy_decode(model, src_in, start_symbol=2, end_symbol=3, device=None):
     :param device:
     :return:
     """
-    _, thought_vec = model.encoder(src_in)
+    encoder_out, decoder_state = model.encoder(src_in)
     max_len = src_in.shape[1] * 2  # 最大长度取输入的两倍
     tgt_in = torch.LongTensor([[start_symbol]]).to(device)  # [1,1]
+    results = []
     for i in range(max_len):
-        output = model.decoder(tgt_in, thought_vec)  # [1,current_tgt_len, hidden_size]
-        logits = model.classifier(output)  # [1,current_tgt_len, vocab_size]
-        all_pred_logits = logits[0][-1]  # [1,vocab_size] , 只取当前时刻的预测输出
-        pred = all_pred_logits.argmax()  # 预测当前时刻的结果
+        decoder_out, decoder_state = model.decoder(tgt_in, decoder_state, encoder_out)
+        # decoder_out shaep: [1,1, hidden_size]
+        logits = model.classifier(decoder_out)  # [1,1, tgt_vocab_size]
+        pred = logits.argmax()  # 预测当前时刻的结果, 0-d
+        results.append(pred.detach().cpu().item())
         if pred.item() == end_symbol:
             break
-        tgt_in = torch.cat([tgt_in, torch.LongTensor([[pred]]).to(device)], dim=1)  # 拼接
-    return tgt_in[:, 1:].detach().cpu().tolist()[0]  # 去掉第1个开始符，取第[0]个形状为 [tgt_len]
+        tgt_in = torch.LongTensor([[pred]]).to(device)
+    return results  # [tgt_len]

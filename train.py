@@ -28,7 +28,7 @@ def train(config=None):
         model.load_state_dict(loaded_paras)
         logging.info("#### 成功载入已有模型，追加训练...")
     model = model.to(config.devices[0])  # 放到主GPU上
-    loss_fn = torch.nn.CrossEntropyLoss(ignore_index=data_loader.TGT_PAD_IDX)
+    loss_fn = torch.nn.CrossEntropyLoss(reduction='sum', ignore_index=data_loader.TGT_PAD_IDX)
     optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
     num_training_steps = len(train_iter) * config.epochs
     scheduler = get_polynomial_decay_schedule_with_warmup(optimizer, config.num_warmup_steps,
@@ -41,9 +41,10 @@ def train(config=None):
             tgt_in = tgt_input[:, :-1]  # 注意，这样的索引方式是batch_first = True时，如果False则为 [:-1,:]
             tgt_out = tgt_input[:, 1:]  # # [batch_size, tgt_out_len]
             logits = model(src_input, tgt_in)  # [batch_size, tgt_out_len, vocab_size]
-            loss = loss_fn(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))
+            loss = loss_fn(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1)) / config.batch_size
             optimizer.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 2.)
             optimizer.step()
             scheduler.step()
             if i % 50 == 0:
