@@ -4,7 +4,7 @@ import torch
 sys.path.append('../')
 
 from model import Encoder
-from model import Decoder
+from model import DecoderWrapper
 
 
 def test_Encoder():
@@ -19,8 +19,8 @@ def test_Encoder():
     encoder = Encoder(embedding_size, hidden_size, num_layers, vocab_size,
                       cell_type, batch_first)
     output, final_state = encoder(src_input)
-    print(output.shape)  # [batch_size, src_len, embedding_size]
-    print(final_state[0].shape)
+    print("encoder output.shape", output.shape)  # [batch_size, src_len, embedding_size]
+    print("encoder final_state[0].shape", final_state[0].shape)
 
 
 def test_Decoder():
@@ -38,10 +38,10 @@ def test_Decoder():
                       cell_type, batch_first)
     output, final_state = encoder(src_input)
 
-    decoder = Decoder(embedding_size, hidden_size, num_layers, vocab_size,
-                      cell_type, batch_first)
+    decoder = DecoderWrapper(embedding_size, hidden_size, num_layers, vocab_size,
+                             cell_type, decoder_type='standard', batch_first=True)
     output, final_state = decoder(tgt_input, final_state)
-    print(output.shape)
+    print("decoder output.shape: ",output.shape)
 
 
 if __name__ == '__main__':

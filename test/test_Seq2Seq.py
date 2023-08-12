@@ -16,6 +16,8 @@ class ModelConfig():
         self.tgt_v_size = 60
         self.cell_type = 'LSTM'
         self.batch_first = True
+        self.dropout=0.5
+        self.decoder_type = 'standard'
 
 
 def test_Seq2Seq():
@@ -26,7 +28,7 @@ def test_Seq2Seq():
     config = ModelConfig()
     seq2seq = Seq2Seq(config)
     output = seq2seq(src_input, tgt_input)  # [batch_size, tgt_len, hidden_size]
-    print(output.shape)
+    print("Seq2Seq output.shape: ",output.shape)
 
 
 if __name__ == '__main__':

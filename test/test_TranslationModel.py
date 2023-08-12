@@ -16,6 +16,8 @@ class ModelConfig():
         self.tgt_v_size = 60
         self.cell_type = 'LSTM'
         self.batch_first = True
+        self.dropout = 0.5
+        self.decoder_type = 'standard'
 
 
 def test_TranslationModel():
@@ -30,6 +32,10 @@ def test_TranslationModel():
 
 
 def test_TranslationModelInference():
+    """
+    标准解码器下贪婪策略的解码过程
+    :return:
+    """
     src_input = torch.LongTensor([[1, 2, 3, 4, 5, 6, 7, 8, 9]])
     tgt_input = torch.LongTensor([[1]])
     config = ModelConfig()
@@ -40,8 +46,8 @@ def test_TranslationModelInference():
         logits = model.classifier(output)  # [1,current_tgt_len, vocab_size]
         print(f"第{i + 1}个时刻的预测logits: {logits.shape}")
         all_pred_logits = logits[0][-1]  # [1,vocab_size] , 只取当前时刻的预测输出
-        pred = all_pred_logits.argmax() # 预测结果
-        tgt_input = torch.cat([tgt_input, torch.LongTensor([[pred]])], dim=1) # 拼接
+        pred = all_pred_logits.argmax()  # 预测结果
+        tgt_input = torch.cat([tgt_input, torch.LongTensor([[pred]])], dim=1)  # 拼接
         print(f"第{i + 1}个时刻预测结束后的结果: {tgt_input.shape}")
         # 第10个时刻预测结束后的结果: torch.Size([1, 11])
 
