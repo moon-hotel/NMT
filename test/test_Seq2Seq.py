@@ -14,10 +14,10 @@ class ModelConfig():
         self.num_layers = 2
         self.src_v_size = 50
         self.tgt_v_size = 60
-        self.cell_type = 'LSTM'
+        self.cell_type = 'GRU'
         self.batch_first = True
-        self.dropout=0.5
-        self.decoder_type = 'standard'
+        self.dropout = 0.5
+        self.decoder_type = 'standard'  # 'luong' or 'standard'
 
 
 def test_Seq2Seq():
@@ -28,7 +28,7 @@ def test_Seq2Seq():
     config = ModelConfig()
     seq2seq = Seq2Seq(config)
     output = seq2seq(src_input, tgt_input)  # [batch_size, tgt_len, hidden_size]
-    print("Seq2Seq output.shape: ",output.shape)
+    print("Seq2Seq output.shape: ", output.shape)
 
 
 if __name__ == '__main__':

@@ -12,14 +12,15 @@ class TranslationModel(nn.Module):
         self.seq2seq = Seq2Seq(config)
         self.classifier = nn.Linear(config.hidden_size, config.tgt_v_size)
 
-    def forward(self, src_input, tgt_input):
+    def forward(self, src_input, tgt_input, src_key_padding_mask=None):
         """
 
         :param src_input:  [batch_size, src_len]
         :param tgt_input:  [batch_size, tgt_len]
+        :param src_key_padding_mask:  [batch_size, src_len] 标识src_input中哪些位置是填充值，True表示填充
         :return:
         """
-        output = self.seq2seq(src_input, tgt_input)  # [batch_size, tgt_len, hidden_size]
+        output = self.seq2seq(src_input, tgt_input, src_key_padding_mask)  # [batch_size, tgt_len, hidden_size]
         logits = self.classifier(output)  # [batch_size, tgt_len,tgt_v_size]
         return logits
 
