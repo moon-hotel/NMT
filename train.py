@@ -1,3 +1,9 @@
+"""
+作 者: @空字符
+公众号: @月来客栈
+知 乎: @月来客栈 https://www.zhihu.com/people/the_lastest
+"""
+
 import logging
 import torch
 import os
@@ -38,9 +44,10 @@ def train(config=None):
     for epoch in range(config.epochs):
         for i, (src_input, tgt_input) in enumerate(train_iter):
             src_input, tgt_input = src_input.to(config.devices[0]), tgt_input.to(config.devices[0])
+            src_key_padding_mask = (src_input == data_loader.SRC_PAD_IDX)
             tgt_in = tgt_input[:, :-1]  # 注意，这样的索引方式是batch_first = True时，如果False则为 [:-1,:]
             tgt_out = tgt_input[:, 1:]  # # [batch_size, tgt_out_len]
-            logits = model(src_input, tgt_in)  # [batch_size, tgt_out_len, vocab_size]
+            logits = model(src_input, tgt_in, src_key_padding_mask)  # [batch_size, tgt_out_len, vocab_size]
             loss = loss_fn(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1)) / config.batch_size
             optimizer.zero_grad()
             loss.backward()
@@ -51,14 +58,15 @@ def train(config=None):
                 bleu = compute_bleu(logits.argmax(dim=-1).detach().cpu().tolist(),
                                     tgt_out.detach().cpu().tolist(), False, data_loader.TGT_PAD_IDX)
                 logging.info(f"Epochs[{epoch + 1}/{config.epochs}]--batch[{i}/{len(train_iter)}]"
-                             f"--ppl: {round(torch.exp(loss).item(), 4)}--loss: {round(loss.item(), 4)}"
+                             f"--loss: {round(loss.item(), 4)}--ppl: {round(torch.exp(loss).item(), 4)}"
                              f"--bleu: {round(bleu, 4)}")
-        bleu = evaluate(config, valid_iter, model, data_loader)
-        logging.info(f"bleu on valid set: {bleu}")
-        if bleu >= max_bleu:
-            max_bleu = bleu
-            state_dict = deepcopy(model.state_dict())
-            torch.save(state_dict, config.model_save_path)
+        if epoch % 3 == 0:
+            bleu = evaluate(config, valid_iter, model, data_loader)
+            logging.info(f"bleu on valid set: {bleu}")
+            if bleu >= max_bleu:
+                max_bleu = bleu
+                state_dict = deepcopy(model.state_dict())
+                torch.save(state_dict, config.model_save_path)
 
 
 def evaluate(config, valid_iter, model, data_loader):

@@ -1,6 +1,4 @@
 """
-文件名: utils/tools.py
-创建时间: 2023/4/12 8:27 下午
 作 者: @空字符
 公众号: @月来客栈
 知 乎: @月来客栈 https://www.zhihu.com/people/the_lastest

@@ -1,4 +1,8 @@
-import logging
+"""
+作 者: @空字符
+公众号: @月来客栈
+知 乎: @月来客栈 https://www.zhihu.com/people/the_lastest
+"""
 
 import torch
 
