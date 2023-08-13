@@ -210,6 +210,7 @@ class LoadEnglishGermanDataset():
         self.TGT_PAD_IDX = self.tgt_vocab['<PAD>']
         self.TGT_BOS_IDX = self.tgt_vocab['<BOS>']
         self.TGT_EOS_IDX = self.tgt_vocab['<EOS>']
+        self.SRC_PAD_IDX = self.src_vocab['<PAD>']
 
     @process_cache(unique_key=['min_freq', 'src_top_k', 'tgt_top_k', 'batch_first'])
     def data_process(self, file_path=None):
