@@ -52,113 +52,18 @@ class Encoder(nn.Module):
         #                 cn: [num_layer, batch_size, hidden_size]
 
 
-class AttentionDecoder(nn.Module):
-    """带有注意力机制解码器的基本接口"""
-
-    def __init__(self, **kwargs):
-        super(AttentionDecoder, self).__init__(**kwargs)
-
-    @property
-    def attention_weights(self):
-        raise NotImplementedError
-
-
-class StandardDecoder(AttentionDecoder):
-    """
-    标准解码器，无注意力
-    """
-
-    def __init__(self, embedding_size, hidden_size, num_layers,
-                 rnn_cell=None, batch_first=True, dropout=0.):
-        """
-
-        :param embedding_size:
-        :param hidden_size:
-        :param num_layers: RNN层数
-        :param cell_type:
-        :param batch_first:
-        """
-        super(StandardDecoder, self).__init__()
-        self.embedding_size = embedding_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.batch_first = batch_first
-        self.dropout = dropout
-
-        self.rnn = rnn_cell(self.embedding_size, self.hidden_size, num_layers=self.num_layers,
-                            batch_first=self.batch_first, dropout=self.dropout)
-
-    def forward(self, tgt_input=None, decoder_state=None,
-                encoder_output=None, src_key_padding_mask=None):
-        """
-
-        :param tgt_input: [batch_size, tgt_len, embedding_size] 这种情况 batch_first 要为True
-        :param decoder_state: encoder的state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
-                              解码第一个时刻的时候，decoder_state为编码器最后一个时刻的encoder_state
-        :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, src_len, hidden_size]
-        :param src_key_padding_mask:
-        :return: output, (hn, cn)
-        """
-        output, final_state = self.rnn(tgt_input, decoder_state)
-        return output, final_state
-
-
-class LuongAttentionDecoder(AttentionDecoder):
+class LuongAttention(nn.Module):
     """
     Luong's multiplicative attention
     """
 
-    def __init__(self, embedding_size, hidden_size, num_layers,
-                 rnn_cell=None, batch_first=True, dropout=0.):
-        super(LuongAttentionDecoder, self).__init__()
-        self.embedding_size = embedding_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.batch_first = batch_first
-        self.dropout = dropout
-        self.linear = nn.Linear(hidden_size, hidden_size)
+    def __init__(self, query_size, dropout=0.):
+        super(LuongAttention, self).__init__()
+        self.linear = nn.Linear(query_size, query_size)
         self.drop = nn.Dropout(dropout)
-        self.rnn = rnn_cell(self.embedding_size + self.hidden_size,
-                            self.hidden_size, num_layers=self.num_layers,
-                            batch_first=self.batch_first, dropout=self.dropout)
 
-    def forward(self, tgt_input=None, decoder_state=None,
-                encoder_output=None, src_key_padding_mask=None):
+    def forward(self, query, key, value, src_key_padding_mask=None):
         """
-
-        :param tgt_input: [batch_size, tgt_len, embedding_size] 这种情况 batch_first 要为True
-        :param decoder_state: 在解码第1个时刻时，decoder_state为encoder最后一个时刻的状态
-                              后续则为decoder上一个时刻的状态
-                LSTM (hn,cn) ，如果是GRU则只有hn
-                hn: [num_layer, batch_size, hidden_size]
-                cn: [num_layer, batch_size, hidden_size]
-        :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, src_len, hidden_size]
-        :param src_key_padding_mask: [batch_size, src_len]
-        :return:
-        """
-        tgt_input = tgt_input.permute(1, 0, 2)  # [tgt_len, batch_size, embedding_size]
-        outputs, self._attention_weights = [], []
-        for tgt_in in tgt_input:  # 开始遍历每个时刻, tgt_in: [batch_size, embedding_size]
-            tgt_in = tgt_in.unsqueeze(1)  # [batch_size, 1, embedding_size]
-            if isinstance(self.rnn, nn.LSTM):
-                query = decoder_state[0][-1]  # [batch_size, hidden_size]
-            else:
-                query = decoder_state[0]  # 因为GRU只有hn  # [batch_size, hidden_size]
-            con_vect, attn_weights = self.attention(query, encoder_output,
-                                                    encoder_output, src_key_padding_mask)
-            # con_vect: [batch_size, 1, hidden_size]
-            # attn_weights: [batch_size, src_len]
-            tgt_in = torch.cat((tgt_in, con_vect), dim=-1)  # [batch_size, 1, hidden_size+embedding_size]
-            output, decoder_state = self.rnn(tgt_in, decoder_state)
-            # output:  [batch_size, 1, hidden_size]
-            outputs.append(output)  # attention vector
-            self._attention_weights.append(attn_weights)  #
-        outputs = torch.cat(outputs, dim=1)  # [batch_size, tgt_len, hidden_size]
-        return outputs, decoder_state
-
-    def attention(self, query, key, value, src_key_padding_mask=None):
-        """
-
         :param query:  hidden_state中的hn的最后一层: [batch_size, hidden_size]
         :param key:    encoder_output [batch_size, src_len, hidden_size]
         :param value:  encoder_output [batch_size, src_len, hidden_size]
@@ -177,67 +82,21 @@ class LuongAttentionDecoder(AttentionDecoder):
         # [batch_size, 1, src_len] @  [batch_size, src_len, hidden_size] = [batch_size, 1, hidden_size]
         return context_vec, attention_weights
 
-    @property
-    def attention_weights(self):
-        return self._attention_weights
 
-
-class BahdanauAttentionDecoder(AttentionDecoder):
+class BahdanauAttention(nn.Module):
     """
     BahdanauAttentionDecoder's multiplicative attention
     """
 
-    def __init__(self, embedding_size, hidden_size, num_layers,
-                 rnn_cell=None, batch_first=True, dropout=0.):
-        super(BahdanauAttentionDecoder, self).__init__()
-        self.embedding_size = embedding_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.batch_first = batch_first
+    def __init__(self, query_size, key_size, value_size, dropout=0.):
+        super(BahdanauAttention, self).__init__()
         self.dropout = dropout
-        self.l_query = nn.Linear(hidden_size, hidden_size)
-        self.l_key = nn.Linear(hidden_size, hidden_size)
-        self.l_value = nn.Linear(hidden_size, 1)
+        self.l_query = nn.Linear(query_size, query_size)
+        self.l_key = nn.Linear(key_size, key_size)
+        self.l_value = nn.Linear(value_size, 1)
         self.drop = nn.Dropout(dropout)
-        self.rnn = rnn_cell(self.embedding_size + self.hidden_size,
-                            self.hidden_size, num_layers=self.num_layers,
-                            batch_first=self.batch_first, dropout=self.dropout)
 
-    def forward(self, tgt_input=None, decoder_state=None,
-                encoder_output=None, src_key_padding_mask=None):
-        """
-
-        :param tgt_input: [batch_size, tgt_len, embedding_size] 这种情况 batch_first 要为True
-        :param decoder_state: 在解码第1个时刻时，decoder_state为encoder最后一个时刻的状态
-                              后续则为decoder上一个时刻的状态
-                LSTM (hn,cn) ，如果是GRU则只有hn
-                hn: [num_layer, batch_size, hidden_size]
-                cn: [num_layer, batch_size, hidden_size]
-        :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, src_len, hidden_size]
-        :param src_key_padding_mask: [batch_size, src_len]
-        :return:
-        """
-        tgt_input = tgt_input.permute(1, 0, 2)  # [tgt_len, batch_size, embedding_size]
-        outputs, self._attention_weights = [], []
-        for tgt_in in tgt_input:  # 开始遍历每个时刻, tgt_in: [batch_size, embedding_size]
-            tgt_in = tgt_in.unsqueeze(1)  # [batch_size, 1, embedding_size]
-            if isinstance(self.rnn, nn.LSTM):
-                query = decoder_state[0][-1]  # [batch_size, hidden_size]
-            else:
-                query = decoder_state[0]  # 因为GRU只有hn  # [batch_size, hidden_size]
-            con_vect, attn_weights = self.attention(query, encoder_output,
-                                                    encoder_output, src_key_padding_mask)
-            # con_vect: [batch_size, 1, hidden_size]
-            # attn_weights: [batch_size, src_len]
-            tgt_in = torch.cat((tgt_in, con_vect), dim=-1)  # [batch_size, 1, hidden_size+embedding_size]
-            output, decoder_state = self.rnn(tgt_in, decoder_state)
-            # output:  [batch_size, 1, hidden_size]
-            outputs.append(output)
-            self._attention_weights.append(attn_weights)  #
-        outputs = torch.cat(outputs, dim=1)  # [batch_size, tgt_len, hidden_size]
-        return outputs, decoder_state
-
-    def attention(self, query, key, value, src_key_padding_mask=None):
+    def forward(self, query, key, value, src_key_padding_mask=None):
         """
 
         :param query:  hidden_state中的hn的最后一层: [batch_size, hidden_size]
@@ -261,10 +120,6 @@ class BahdanauAttentionDecoder(AttentionDecoder):
         # [batch_size, 1, src_len] @  [batch_size, src_len, hidden_size] = [batch_size, 1, hidden_size]
         return context_vec, attention_weights
 
-    @property
-    def attention_weights(self):
-        return self._attention_weights
-
 
 class DecoderWrapper(nn.Module):
     """
@@ -287,7 +142,11 @@ class DecoderWrapper(nn.Module):
         self.vocab_size = vocab_size
         self.cell_type = cell_type
         self.decoder_type = decoder_type
-
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.batch_first = batch_first
+        self.dropout = dropout
+        self.token_embedding = nn.Embedding(self.vocab_size, self.embedding_size)
         if cell_type == 'LSTM':
             rnn_cell = nn.LSTM
         elif cell_type == 'GRU':
@@ -295,35 +154,61 @@ class DecoderWrapper(nn.Module):
         else:
             raise ValueError("Unrecognized RNN cell type: " + cell_type)
 
-        self.token_embedding = nn.Embedding(self.vocab_size, self.embedding_size)
+        input_size = self.embedding_size + self.hidden_size
         if self.decoder_type == 'standard':
-            self.decoder_wrapper = StandardDecoder(embedding_size, hidden_size, num_layers,
-                                                   rnn_cell, batch_first, dropout)
+            self.attention = None
+            input_size = self.embedding_size
         elif self.decoder_type == 'luong':
-            self.decoder_wrapper = LuongAttentionDecoder(embedding_size, hidden_size, num_layers,
-                                                         rnn_cell, batch_first, dropout)
+            self.attention = LuongAttention(hidden_size, dropout)
         elif self.decoder_type == 'bahdanau':
-            self.decoder_wrapper = BahdanauAttentionDecoder(embedding_size, hidden_size, num_layers,
-                                                            rnn_cell, batch_first, dropout)
+            self.attention = BahdanauAttention(hidden_size, hidden_size, hidden_size, dropout)
         else:
             raise ValueError(f"{self.decoder_type}不存在，"
-                             f"请指定为以下其中之一('standard','luong')")
+                             f"请指定为以下其中之一('standard','luong','bahdanau')")
+        self.rnn = rnn_cell(input_size, self.hidden_size, num_layers=self.num_layers,
+                            batch_first=self.batch_first, dropout=self.dropout)
 
     def forward(self, tgt_input=None, decoder_state=None,
                 encoder_output=None, src_key_padding_mask=None):
         """
-
         :param tgt_input: [batch_size, tgt_len] 这种情况 batch_first 要为True
         :param decoder_state: state, 包含(hn, cn)两部分，这里就决定了encoder和decoder的hidden_size要一致
-                               解码第一个时刻的时候，decoder_state为编码器最后一个时刻的state
+                               解码第一个时刻的时候，decoder_state为编码器最后一个时刻的state,后续则为decoder上一个时刻的状态
+             LSTM (hn,cn) ，如果是GRU则只有hn
+                            hn: [num_layer, batch_size, hidden_size]
+                            cn: [num_layer, batch_size, hidden_size]
         :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, src_len, hidden_size]
         :param src_key_padding_mask: [batch_size, tgt_len],用于在注意力计算时忽略padding位置上的注意力值
         :return: output, (hn, cn)
         """
         tgt_input = self.token_embedding(tgt_input)  # [batch_size, tgt_input, embedding_size]
-        output, final_state = self.decoder_wrapper(tgt_input, decoder_state,
-                                                   encoder_output, src_key_padding_mask)
-        return output, final_state
+
+        if self.decoder_type == 'standard':
+            outputs, decoder_state = self.rnn(tgt_input, decoder_state)
+        else:
+            tgt_input = tgt_input.permute(1, 0, 2)  # [tgt_len, batch_size, embedding_size]
+            outputs, self._attention_weights = [], []
+            for tgt_in in tgt_input:  # 开始遍历每个时刻, tgt_in: [batch_size, embedding_size]
+                tgt_in = tgt_in.unsqueeze(1)  # [batch_size, 1, embedding_size]
+                if isinstance(self.rnn, nn.LSTM):
+                    query = decoder_state[0][-1]  # [batch_size, hidden_size]
+                else:
+                    query = decoder_state[0]  # 因为GRU只有hn  # [batch_size, hidden_size]
+                con_vect, attn_weights = self.attention(query, encoder_output, encoder_output, src_key_padding_mask)
+                # con_vect: [batch_size, 1, hidden_size]
+                # attn_weights: [batch_size, src_len]
+                tgt_in = torch.cat((tgt_in, con_vect), dim=-1)  # [batch_size, 1, hidden_size+embedding_size]
+                output, decoder_state = self.rnn(tgt_in, decoder_state)
+                # output:  [batch_size, 1, hidden_size]
+                outputs.append(output)  # attention vector
+                self._attention_weights.append(attn_weights)  #
+            outputs = torch.cat(outputs, dim=1)  # [batch_size, tgt_len, hidden_size]
+
+        return outputs, decoder_state
+
+    @property
+    def attention_weights(self):
+        return self._attention_weights
 
 
 class Seq2Seq(nn.Module):

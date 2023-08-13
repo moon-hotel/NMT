@@ -17,7 +17,7 @@ class ModelConfig():
         self.cell_type = 'GRU'
         self.batch_first = True
         self.dropout = 0.5
-        self.decoder_type = 'standard'  # 'luong' or 'standard'
+        self.decoder_type = 'bahdanau'  # 'luong' or 'standard'
 
 
 def test_Seq2Seq():
@@ -29,6 +29,7 @@ def test_Seq2Seq():
     seq2seq = Seq2Seq(config)
     output = seq2seq(src_input, tgt_input)  # [batch_size, tgt_len, hidden_size]
     print("Seq2Seq output.shape: ", output.shape)
+    print(seq2seq.decoder.attention_weights[0].shape)
 
 
 if __name__ == '__main__':
