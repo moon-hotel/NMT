@@ -133,7 +133,7 @@ class DecoderWrapper(nn.Module):
     """
 
     def __init__(self, embedding_size, hidden_size, num_layers, vocab_size,
-                 cell_type='LSTM', decoder_type='standard', batch_first=True, dropout=0.):
+                 cell_type='LSTM', attention_type='standard', batch_first=True, dropout=0.):
         """
 
         :param embedding_size:
@@ -147,7 +147,7 @@ class DecoderWrapper(nn.Module):
         self.embedding_size = embedding_size
         self.vocab_size = vocab_size
         self.cell_type = cell_type
-        self.decoder_type = decoder_type
+        self.attention_type = attention_type
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.batch_first = batch_first
@@ -161,15 +161,15 @@ class DecoderWrapper(nn.Module):
             raise ValueError("Unrecognized RNN cell type: " + cell_type)
 
         input_size = self.embedding_size + self.hidden_size
-        if self.decoder_type == 'standard':
+        if self.attention_type == 'standard':
             self.attention = None
             input_size = self.embedding_size
-        elif self.decoder_type == 'luong':
+        elif self.attention_type == 'luong':
             self.attention = LuongAttention(hidden_size, dropout)
-        elif self.decoder_type == 'bahdanau':
+        elif self.attention_type == 'bahdanau':
             self.attention = BahdanauAttention(hidden_size, hidden_size, hidden_size, dropout)
         else:
-            raise ValueError(f"{self.decoder_type}不存在，"
+            raise ValueError(f"{self.attention_type}不存在，"
                              f"请指定为以下其中之一('standard','luong','bahdanau')")
         self.rnn = rnn_cell(input_size, self.hidden_size, num_layers=self.num_layers,
                             batch_first=self.batch_first, dropout=self.dropout)
@@ -189,7 +189,7 @@ class DecoderWrapper(nn.Module):
         """
         tgt_input = self.token_embedding(tgt_input)  # [batch_size, tgt_input, embedding_size]
 
-        if self.decoder_type == 'standard':
+        if self.attention_type == 'standard':
             outputs, decoder_state = self.rnn(tgt_input, decoder_state)
         else:
             tgt_input = tgt_input.permute(1, 0, 2)  # [tgt_len, batch_size, embedding_size]
@@ -224,7 +224,7 @@ class Seq2Seq(nn.Module):
                                config.src_v_size, config.cell_type, config.batch_first,
                                config.dropout)
         self.decoder = DecoderWrapper(config.tgt_emb_size, config.hidden_size, config.num_layers,
-                                      config.tgt_v_size, config.cell_type, config.decoder_type,
+                                      config.tgt_v_size, config.cell_type, config.attention_type,
                                       config.batch_first, config.dropout)
 
     def forward(self, src_input, tgt_input, src_key_padding_mask=None):

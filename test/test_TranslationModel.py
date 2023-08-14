@@ -24,7 +24,7 @@ class ModelConfig():
         self.cell_type = 'LSTM'
         self.batch_first = True
         self.dropout = 0.5
-        self.decoder_type = 'standard'
+        self.attention_type = 'standard'
 
 
 def test_TranslationModel():

@@ -34,7 +34,7 @@ def test_BahdanauAttention():
     output, final_state = encoder(src_input)
 
     decoder = DecoderWrapper(embedding_size, hidden_size, num_layers, vocab_size,
-                             cell_type, decoder_type='bahdanau', batch_first=True)
+                             cell_type, attention_type='bahdanau', batch_first=True)
     output, final_state = decoder(tgt_input, final_state, output, src_key_padding_mask)
     print("decoder output.shape: ", output.shape)
 

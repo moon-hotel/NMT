@@ -23,7 +23,7 @@ class ModelConfig():
         self.cell_type = 'GRU'
         self.batch_first = True
         self.dropout = 0.5
-        self.decoder_type = 'bahdanau'  # 'luong' or 'standard'
+        self.attention_type = 'bahdanau'  # 'luong' or 'standard'
 
 
 def test_Seq2Seq():
