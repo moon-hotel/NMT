@@ -82,7 +82,7 @@ def evaluate(config, valid_iter, model, data_loader):
     y_preds, y_trues = [], []
     with torch.no_grad():
         for src_input, tgt_input in valid_iter:
-            for src_in, tgt_in in zip(src_input, tgt_input):  # 遍历每一个样本
+            for src_in, tgt_in in zip(src_input, tgt_input):  # 遍历每一个样本进行解码预测
                 src_in = src_in.to(config.devices[0])
                 tgt_out = tgt_in[1:]  # 去掉第一个时刻，即开始符
                 # 此时 src_in和tgt_in的形状为 [src_len]和[tgt_len]
@@ -98,18 +98,19 @@ def compute_bleu(y_pred, y_true, inference=False, pad_index=0):
     """
     :param y_pred: [batch_size, tgt_out_len]  二维的list
     :param y_true: [batch_size, tgt_out_len]  二维的list
+    :param inference: 是否在推理阶段，若果是训练阶段则需要考虑忽略padding位置
     :return: e.g.
     y_pred = [[1, 2, 3, 4, 5, 6, 6, 7], [2, 2, 2, 3, 5, 6, 3, 4]]
     y_true = [[1, 2, 3, 4, 5, 6, 0, 0], [2, 2, 2, 3, 5, 7, 0, 0]]
 
     if not inference:
-        compute_bleu(y_pred, y_true) 0.88068
+        compute_bleu(y_pred, y_true, False) 0.88068
         此时:
               y_pred:   [['1', '2', '3', '4', '5', '6'], ['2', '2', '2', '3', '5', '6']]
     y_true_truncated:  [[['1', '2', '3', '4', '5', '6']], [['2', '2', '2', '3', '5', '7']]]
 
     if inference:
-        compute_bleu(y_pred, y_true) 0.59919
+        compute_bleu(y_pred, y_true, True) 0.59919
         此时:
                y_pred:  [['1', '2', '3', '4', '5', '6', '6', '7'], ['2', '2', '2', '3', '5', '6', '3', '4']]
     y_true_truncated:  [[['1', '2', '3', '4', '5', '6']], [['2', '2', '2', '3', '5', '7']]]
@@ -117,17 +118,17 @@ def compute_bleu(y_pred, y_true, inference=False, pad_index=0):
     """
     y_pred = [[str(item) for item in x] for x in y_pred]
     y_true_truncated = []
-    for i, x in enumerate(y_true):  # 对正确标签中的填充值进行处理
+    for i, y in enumerate(y_true):  # 对正确标签中的填充值进行处理
         tmp = []
-        for item in x:
+        for item in y: # 遍历每一个token id
             if item != pad_index:  # 判断当前时刻的真实标签值是否为填充值
-                tmp.append(str(item))
+                tmp.append(str(item)) # 如果不是则保存
             else:
                 break
-        y_true_truncated.append([tmp])
-        if not inference:  # 如果是训练阶段，在计算bleu时则需要去掉解码器正确标签填充部分的值
+        y_true_truncated.append([tmp]) # 真实的目标输出
+        if not inference:  # 如果是训练阶段，在计算bleu时则需要去掉解码器中填充值和<EOS>作为输入时预测得到的这部分结果
             y_pred[i] = y_pred[i][:len(tmp)]
-            # 注意：如果是在推理阶段，则不能对预测结果做任何操作
+            # 注意：如果是在推理阶段，则不能对预测结果做任何操作，此时在解码时解码器的输入均为上一个时刻的输出
     # if inference:
     #     logging.info(f"y_pred: {y_pred[:5]}")
     #     logging.info(f"y_true_truncated: {y_true_truncated[:5]}")
