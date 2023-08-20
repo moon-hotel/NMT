@@ -63,9 +63,9 @@ class LuongAttention(nn.Module):
     Luong's multiplicative attention
     """
 
-    def __init__(self, query_size, dropout=0.):
+    def __init__(self, hidden_size, dropout=0.):
         super(LuongAttention, self).__init__()
-        self.linear = nn.Linear(query_size, query_size)
+        self.linear = nn.Linear(hidden_size, hidden_size)
         self.drop = nn.Dropout(dropout)
 
     def forward(self, query, key, value, src_key_padding_mask=None):
@@ -94,12 +94,12 @@ class BahdanauAttention(nn.Module):
     BahdanauAttentionDecoder's multiplicative attention
     """
 
-    def __init__(self, query_size, key_size, value_size, dropout=0.):
+    def __init__(self, hidden_size, dropout=0.):
         super(BahdanauAttention, self).__init__()
         self.dropout = dropout
-        self.l_query = nn.Linear(query_size, query_size)
-        self.l_key = nn.Linear(key_size, key_size)
-        self.l_value = nn.Linear(value_size, 1)
+        self.l_query = nn.Linear(hidden_size, hidden_size)
+        self.l_key = nn.Linear(hidden_size, hidden_size)
+        self.linear = nn.Linear(hidden_size, 1)
         self.drop = nn.Dropout(dropout)
 
     def forward(self, query, key, value, src_key_padding_mask=None):
@@ -108,7 +108,7 @@ class BahdanauAttention(nn.Module):
         :param query:  hidden_state中的hn的最后一层: [batch_size, hidden_size]
         :param key:    encoder_output [batch_size, src_len, hidden_size]
         :param value:  encoder_output [batch_size, src_len, hidden_size]
-        :param src_key_padding_mask:  填充值标志True表示是填充值
+        :param src_key_padding_mask: [batch_size, src_len] 填充值标志True表示是填充值
         :return:
         """
         query = self.l_query(query).unsqueeze(1)
@@ -117,7 +117,7 @@ class BahdanauAttention(nn.Module):
         key = self.l_key(key)
         # key: [batch_size, src_len, hidden_size] @ [hidden_size, hidden_size] = [batch_size, src_len, hidden_size]
         feature = torch.tanh(query + key)  # [batch_size, src_len, hidden_size]
-        scores = self.l_value(feature).squeeze(2)  # [batch_size, src_len]
+        scores = self.linear(feature).squeeze(2)  # [batch_size, src_len, 1] ==> [batch_size, src_len]
         if src_key_padding_mask is not None:
             scores = scores.masked_fill(src_key_padding_mask, float('-inf'))
             # 掩盖掉填充部分的注意力值，[batch_size, tgt_len]
@@ -167,7 +167,7 @@ class DecoderWrapper(nn.Module):
         elif self.attention_type == 'luong':
             self.attention = LuongAttention(hidden_size, dropout)
         elif self.attention_type == 'bahdanau':
-            self.attention = BahdanauAttention(hidden_size, hidden_size, hidden_size, dropout)
+            self.attention = BahdanauAttention(hidden_size, dropout)
         else:
             raise ValueError(f"{self.attention_type}不存在，"
                              f"请指定为以下其中之一('standard','luong','bahdanau')")
@@ -204,9 +204,9 @@ class DecoderWrapper(nn.Module):
                 # con_vect: [batch_size, 1, hidden_size]
                 # attn_weights: [batch_size, src_len]
                 tgt_in = torch.cat((tgt_in, con_vect), dim=-1)  # [batch_size, 1, hidden_size+embedding_size]
-                output, decoder_state = self.rnn(tgt_in, decoder_state)
+                attn_vector, decoder_state = self.rnn(tgt_in, decoder_state)
                 # output:  [batch_size, 1, hidden_size]
-                outputs.append(output)  # attention vector
+                outputs.append(attn_vector)  # attention vector
                 self._attention_weights.append(attn_weights)  #
             outputs = torch.cat(outputs, dim=1)  # [batch_size, tgt_len, hidden_size]
 

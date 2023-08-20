@@ -40,7 +40,7 @@ def test_BahdanauAttention():
 
 
 def test_attention():
-    bahdanau = BahdanauAttention(hidden_size, hidden_size, hidden_size)
+    bahdanau = BahdanauAttention(hidden_size)
     query = torch.rand((batch_size, hidden_size))
     key = value = torch.rand((batch_size, src_len, hidden_size))
     context_vec, attention_weights = bahdanau(query, key, value, src_key_padding_mask)
@@ -50,7 +50,7 @@ def test_attention():
 
     plt.imshow(attention_weights.detach(), cmap='viridis', interpolation='nearest')
     plt.colorbar()
-    plt.title('Attention Matrix (without mask)')
+    plt.title('Attention Matrix (with mask)')
     plt.xlabel('Time Steps')
     plt.ylabel('Batch Size')
     plt.show()
