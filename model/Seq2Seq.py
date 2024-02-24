@@ -184,7 +184,7 @@ class DecoderWrapper(nn.Module):
                             hn: [num_layer, batch_size, hidden_size]
                             cn: [num_layer, batch_size, hidden_size]
         :param encoder_output: encoder最后一层所有时刻的输出, [batch_size, src_len, hidden_size]
-        :param src_key_padding_mask: [batch_size, tgt_len],用于在注意力计算时忽略padding位置上的注意力值
+        :param src_key_padding_mask: [batch_size, src_len],用于在注意力计算时忽略padding位置上的注意力值
         :return: output, (hn, cn)
         """
         tgt_input = self.token_embedding(tgt_input)  # [batch_size, tgt_input, embedding_size]
@@ -205,7 +205,7 @@ class DecoderWrapper(nn.Module):
                 # attn_weights: [batch_size, src_len]
                 tgt_in = torch.cat((tgt_in, con_vect), dim=-1)  # [batch_size, 1, hidden_size+embedding_size]
                 attn_vector, decoder_state = self.rnn(tgt_in, decoder_state)
-                # output:  [batch_size, 1, hidden_size]
+                # attn_vector:  [batch_size, 1, hidden_size]
                 outputs.append(attn_vector)  # attention vector
                 self._attention_weights.append(attn_weights)  #
             outputs = torch.cat(outputs, dim=1)  # [batch_size, tgt_len, hidden_size]
