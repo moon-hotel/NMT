@@ -79,7 +79,7 @@ class LuongAttention(nn.Module):
         scores = torch.bmm(self.linear(query).unsqueeze(1), key.transpose(1, 2))
         # [batch_size, hidden_size] @ [hidden_size, hidden_size] = [batch_size, hidden_size]
         # [batch_size, 1, hidden_size] @ [batch_size, hidden_size, tgt_len]= [batch_size, 1, tgt_len]
-        scores = scores.squeeze(1)  # [batch_size, 1, tgt_len]
+        scores = scores.squeeze(1)  # [batch_size, tgt_len]
         if src_key_padding_mask is not None:
             scores = scores.masked_fill(src_key_padding_mask, float('-inf'))
             # 掩盖掉填充部分的注意力值，[batch_size, tgt_len]
