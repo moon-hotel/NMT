@@ -197,9 +197,9 @@ class DecoderWrapper(nn.Module):
             for tgt_in in tgt_input:  # 开始遍历每个时刻, tgt_in: [batch_size, embedding_size]
                 tgt_in = tgt_in.unsqueeze(1)  # [batch_size, 1, embedding_size]
                 if isinstance(self.rnn, nn.LSTM):
-                    query = decoder_state[0][-1]  # [batch_size, hidden_size]
+                    query = decoder_state[0][-1]  # LSTM 是 (hn, cn), [batch_size, hidden_size]
                 else:
-                    query = decoder_state[0]  # 因为GRU只有hn  # [batch_size, hidden_size]
+                    query = decoder_state[-1]  # 因为GRU只有hn, -1 表示取最后一层  # [batch_size, hidden_size]
                 con_vect, attn_weights = self.attention(query, encoder_output, encoder_output, src_key_padding_mask)
                 # con_vect: [batch_size, 1, hidden_size]
                 # attn_weights: [batch_size, src_len]
